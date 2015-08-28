@@ -30,7 +30,6 @@ public class OfflinePage extends CordovaPlugin {
     private static final String OFFLINE_PAGE_TEMPLATE = "<html><body><div style=\"top:50%%;text-align:center;position:absolute\">%s</div></body></html>";
 
     private CordovaActivity activity;
-    private CordovaPlugin whiteListPlugin;
 
     private LinearLayout rootLayout;
     private WebView offlineWebView;
