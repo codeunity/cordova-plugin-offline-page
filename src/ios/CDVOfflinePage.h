@@ -1,7 +1,5 @@
 #import <Cordova/CDVPlugin.h>
 
-#define kManifestLoadedNotification @"kManifestLoadedNotification"
-
 #define kCDVOfflinePageWebViewDidStartLoad @"CDVOfflinePageWebViewDidStartLoad"
 #define kCDVOfflinePageWebViewShouldStartLoadWithRequest @"CDVOfflinePageWebViewShouldStartLoadWithRequest"
 #define kCDVOfflinePageWebViewDidFinishLoad @"CDVOfflinePageWebViewDidFinishLoad"
@@ -16,12 +14,6 @@
     CVDWebViewNotificationDelegate *notificationDelegate;
     NSDictionary *manifest;
 }
-
-@property (nonatomic, strong, readonly) NSDictionary *manifest;
-
--(void) loadManifest:(CDVInvokedUrlCommand*)command;
-
--(void) getManifest:(CDVInvokedUrlCommand*)command;
 
 -(void) enableOfflinePage:(CDVInvokedUrlCommand*)command;
 

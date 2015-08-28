@@ -6,7 +6,6 @@
 
 @property UIWebView *offlineView;
 @property NSString *offlinePage;
-@property NSString *manifestError;
 @property BOOL enableOfflineSupport;
 @property NSURL *failedURL;
 
@@ -41,10 +40,6 @@
 @end
 
 @implementation CDVOfflinePage
-
-@synthesize manifest;
-
-static NSString * const defaultManifestFileName = @"manifest.json";
 
 - (void)pluginInitialize
 {
@@ -83,42 +78,10 @@ static NSString * const defaultManifestFileName = @"manifest.json";
     // no connection errors on startup
     self.failedURL = nil;
 
-    // load the W3C manifest
-    manifest = [self loadManifestFile:nil];
-
     // set the webview delegate to notify navigation events
     notificationDelegate = [[CVDWebViewNotificationDelegate alloc] init];
     notificationDelegate.wrappedDelegate = self.webView.delegate;
     [self.webView setDelegate:notificationDelegate];
-}
-
-// loads the specified W3C manifest
--(void) loadManifest:(CDVInvokedUrlCommand *)command {
-
-    CDVPluginResult* pluginResult = nil;
-    NSString* manifestFileName = [command.arguments objectAtIndex:0];
-
-    manifest = [self loadManifestFile:manifestFileName];
-    if (self.manifest != nil) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.manifest];
-    } else {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:self.manifestError];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
-
-// returns the currently loaded manifest
--(void) getManifest:(CDVInvokedUrlCommand *)command {
-
-    CDVPluginResult* pluginResult = nil;
-    if (self.manifest != nil) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.manifest];
-    } else {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:self.manifestError];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 // enables offline page support
@@ -135,47 +98,6 @@ static NSString * const defaultManifestFileName = @"manifest.json";
     self.enableOfflineSupport = NO;
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:true];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
-
-// loads a manifest file and parses it
--(NSDictionary *) loadManifestFile:(NSString *)manifestFileName {
-
-    self.manifestError = nil;
-
-    if (manifestFileName == nil) {
-        manifestFileName = defaultManifestFileName;
-    }
-
-    NSString* filePath = [self.commandDelegate pathForResource:manifestFileName];
-    if (filePath == nil) {
-        self.manifestError = [NSString stringWithFormat:@"Missing manifest file: %@", manifestFileName];
-        return nil;
-    }
-
-    NSData *manifestData = [NSData dataWithContentsOfFile:filePath];
-    if (manifestData == nil) {
-        self.manifestError = [NSString stringWithFormat:@"Error reading manifest file: %@", manifestFileName];
-        return nil;
-    }
-
-    NSError *error = nil;
-    id parsedManifest = [NSJSONSerialization JSONObjectWithData:manifestData options:0 error:&error];
-
-    if (error) {
-        /* handle malformed JSON here */
-        self.manifestError = [NSString stringWithFormat:@"Error parsing manifest file: %@ - %@", manifestFileName, error];
-        return nil;
-    }
-
-    if([parsedManifest isKindOfClass:[NSDictionary class]]) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:kManifestLoadedNotification object:parsedManifest];
-
-        return parsedManifest;
-    }
-
-    /* deserialization is not a dictionary--it probably means an invalid manifest. */
-    self.manifestError = [NSString stringWithFormat:@"Invalid or unexpected manifest format: %@", manifestFileName];
-    return nil;
 }
 
 // Creates an additional webview to load the offline page, places it above the content webview, and hides it. It will
@@ -280,27 +202,6 @@ static NSString * const defaultManifestFileName = @"manifest.json";
             }
         }
     }
-}
-
-- (BOOL) shouldOverrideLoadWithRequest:(NSURLRequest*)request navigationType:(UIWebViewNavigationType)navigationType
-{
-    NSURL* url = [request URL];
-    CDVViewController* cdvViewController = (CDVViewController*)self.viewController;
-    
-    if (cdvViewController != nil) {
-        if (cdvViewController.whitelist != nil) {
-            if ([cdvViewController.whitelist schemeIsAllowed:[url scheme]]) {
-                if (![cdvViewController.whitelist URLIsAllowed:url]) {
-                    if ([[UIApplication sharedApplication] canOpenURL:url]) {
-                        [[UIApplication sharedApplication] openURL:url]; // opens the URL outside the webview
-                        return YES;
-                    }
-                }
-            }
-        }
-    }
-    
-    return NO;
 }
 
 @end
