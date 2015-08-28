@@ -16,11 +16,10 @@
     </js-module>
 
     <engines>
-        <engine name="cordova-windows" version="4.0.0" />
         <engine name="cordova-ios" version="3.8.0" />
         <engine name="cordova-android" version="4.0.2" />
     </engines>
-    
+
     <!-- android -->
     <platform name="android">
         <config-file target="res/xml/config.xml" parent="/*">
@@ -34,13 +33,6 @@
         </config-file>
 
         <source-file src="src/android/OfflinePage.java" target-dir="src/com/manifoldjs/offlinepage" />
-    </platform>
-
-    <!-- windows -->
-    <platform name="windows">
-      <js-module src="src/windows/OfflinePagePluginProxy.js" name="OfflinePagePluginProxy">
-        <merges target="" />
-      </js-module>
     </platform>
 
     <!-- ios -->
