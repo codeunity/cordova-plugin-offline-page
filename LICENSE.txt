@@ -1,4 +1,4 @@
-ManifoldJS
+Offline Page
 
 Copyright (c) Microsoft Corporation
 
