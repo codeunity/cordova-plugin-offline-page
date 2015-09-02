@@ -1,12 +1,11 @@
-#import "CDVHostedWebApp.h"
+#import "CDVOfflinePage.h"
 #import <Cordova/CDV.h>
 #import "CDVConnection.h"
 
-@interface CDVHostedWebApp ()
+@interface CDVOfflinePage ()
 
 @property UIWebView *offlineView;
 @property NSString *offlinePage;
-@property NSString *manifestError;
 @property BOOL enableOfflineSupport;
 @property NSURL *failedURL;
 
@@ -17,11 +16,11 @@
 - (void)webViewDidStartLoad:(UIWebView*)theWebView {
     [self.wrappedDelegate webViewDidStartLoad: theWebView];
 
-    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVHostedWebAppWebViewDidStartLoad object:theWebView]];
+    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVOfflinePageWebViewDidStartLoad object:theWebView]];
 }
 
 - (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
-    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVHostedWebAppWebViewShouldStartLoadWithRequest object:request]];
+    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVOfflinePageWebViewShouldStartLoadWithRequest object:request]];
 
     return [self.wrappedDelegate webView:webView shouldStartLoadWithRequest:request navigationType:navigationType];
 }
@@ -29,22 +28,18 @@
 - (void)webViewDidFinishLoad:(UIWebView *)webView {
     [self.wrappedDelegate webViewDidFinishLoad:webView];
 
-    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVHostedWebAppWebViewDidFinishLoad object:webView]];
+    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVOfflinePageWebViewDidFinishLoad object:webView]];
 }
 
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
     [self.wrappedDelegate webView:webView didFailLoadWithError:error];
 
-    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVHostedWebAppWebViewDidFailLoadWithError object:error]];
+    [[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:kCDVOfflinePageWebViewDidFailLoadWithError object:error]];
 }
 
 @end
 
-@implementation CDVHostedWebApp
-
-@synthesize manifest;
-
-static NSString * const defaultManifestFileName = @"manifest.json";
+@implementation CDVOfflinePage
 
 - (void)pluginInitialize
 {
@@ -62,19 +57,19 @@ static NSString * const defaultManifestFileName = @"manifest.json";
     // observe notifications from webview when page starts loading
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(webViewDidStartLoad:)
-                                                 name:kCDVHostedWebAppWebViewDidStartLoad
+                                                 name:kCDVOfflinePageWebViewDidStartLoad
                                                object:nil];
 
     // observe notifications from webview when page starts loading
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(webViewDidFinishLoad:)
-                                                 name:kCDVHostedWebAppWebViewDidFinishLoad
+                                                 name:kCDVOfflinePageWebViewDidFinishLoad
                                                object:nil];
 
     // observe notifications from webview when page fails loading
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didWebViewFailLoadWithError:)
-                                                 name:kCDVHostedWebAppWebViewDidFailLoadWithError
+                                                 name:kCDVOfflinePageWebViewDidFailLoadWithError
                                                object:nil];
 
     // enable offline support by default
@@ -83,42 +78,10 @@ static NSString * const defaultManifestFileName = @"manifest.json";
     // no connection errors on startup
     self.failedURL = nil;
 
-    // load the W3C manifest
-    manifest = [self loadManifestFile:nil];
-
     // set the webview delegate to notify navigation events
     notificationDelegate = [[CVDWebViewNotificationDelegate alloc] init];
     notificationDelegate.wrappedDelegate = self.webView.delegate;
     [self.webView setDelegate:notificationDelegate];
-}
-
-// loads the specified W3C manifest
--(void) loadManifest:(CDVInvokedUrlCommand *)command {
-
-    CDVPluginResult* pluginResult = nil;
-    NSString* manifestFileName = [command.arguments objectAtIndex:0];
-
-    manifest = [self loadManifestFile:manifestFileName];
-    if (self.manifest != nil) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.manifest];
-    } else {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:self.manifestError];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
-
-// returns the currently loaded manifest
--(void) getManifest:(CDVInvokedUrlCommand *)command {
-
-    CDVPluginResult* pluginResult = nil;
-    if (self.manifest != nil) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:self.manifest];
-    } else {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:self.manifestError];
-    }
-
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 // enables offline page support
@@ -135,47 +98,6 @@ static NSString * const defaultManifestFileName = @"manifest.json";
     self.enableOfflineSupport = NO;
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:true];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
-
-// loads a manifest file and parses it
--(NSDictionary *) loadManifestFile:(NSString *)manifestFileName {
-
-    self.manifestError = nil;
-
-    if (manifestFileName == nil) {
-        manifestFileName = defaultManifestFileName;
-    }
-
-    NSString* filePath = [self.commandDelegate pathForResource:manifestFileName];
-    if (filePath == nil) {
-        self.manifestError = [NSString stringWithFormat:@"Missing manifest file: %@", manifestFileName];
-        return nil;
-    }
-
-    NSData *manifestData = [NSData dataWithContentsOfFile:filePath];
-    if (manifestData == nil) {
-        self.manifestError = [NSString stringWithFormat:@"Error reading manifest file: %@", manifestFileName];
-        return nil;
-    }
-
-    NSError *error = nil;
-    id parsedManifest = [NSJSONSerialization JSONObjectWithData:manifestData options:0 error:&error];
-
-    if (error) {
-        /* handle malformed JSON here */
-        self.manifestError = [NSString stringWithFormat:@"Error parsing manifest file: %@ - %@", manifestFileName, error];
-        return nil;
-    }
-
-    if([parsedManifest isKindOfClass:[NSDictionary class]]) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:kManifestLoadedNotification object:parsedManifest];
-
-        return parsedManifest;
-    }
-
-    /* deserialization is not a dictionary--it probably means an invalid manifest. */
-    self.manifestError = [NSString stringWithFormat:@"Invalid or unexpected manifest format: %@", manifestFileName];
-    return nil;
 }
 
 // Creates an additional webview to load the offline page, places it above the content webview, and hides it. It will
@@ -241,7 +163,7 @@ static NSString * const defaultManifestFileName = @"manifest.json";
 // Handles notifications from the webview delegate whenever a page starts loading.
 - (void)webViewDidStartLoad:(NSNotification*)notification
 {
-    if ([[notification name] isEqualToString:kCDVHostedWebAppWebViewDidStartLoad]) {
+    if ([[notification name] isEqualToString:kCDVOfflinePageWebViewDidStartLoad]) {
         NSLog (@"Received a navigation start notification.");
         self.failedURL = nil;
     }
@@ -250,7 +172,7 @@ static NSString * const defaultManifestFileName = @"manifest.json";
 // Handles notifications from the webview delegate whenever a page finishes loading.
 - (void)webViewDidFinishLoad:(NSNotification*)notification
 {
-    if ([[notification name] isEqualToString:kCDVHostedWebAppWebViewDidFinishLoad]) {
+    if ([[notification name] isEqualToString:kCDVOfflinePageWebViewDidFinishLoad]) {
         NSLog (@"Received a navigation completed notification.");
         if (!self.failedURL) {
             [self.offlineView setHidden:YES];
@@ -263,7 +185,7 @@ static NSString * const defaultManifestFileName = @"manifest.json";
 {
     NSError* error = [notification object];
 
-    if ([[notification name] isEqualToString:kCDVHostedWebAppWebViewDidFailLoadWithError]) {
+    if ([[notification name] isEqualToString:kCDVOfflinePageWebViewDidFailLoadWithError]) {
         NSLog (@"Received a navigation failure notification. error: %@", [error description]);
         if ([error code] == NSURLErrorTimedOut ||
             [error code] == NSURLErrorUnsupportedURL ||
@@ -280,27 +202,6 @@ static NSString * const defaultManifestFileName = @"manifest.json";
             }
         }
     }
-}
-
-- (BOOL) shouldOverrideLoadWithRequest:(NSURLRequest*)request navigationType:(UIWebViewNavigationType)navigationType
-{
-    NSURL* url = [request URL];
-    CDVViewController* cdvViewController = (CDVViewController*)self.viewController;
-    
-    if (cdvViewController != nil) {
-        if (cdvViewController.whitelist != nil) {
-            if ([cdvViewController.whitelist schemeIsAllowed:[url scheme]]) {
-                if (![cdvViewController.whitelist URLIsAllowed:url]) {
-                    if ([[UIApplication sharedApplication] canOpenURL:url]) {
-                        [[UIApplication sharedApplication] openURL:url]; // opens the URL outside the webview
-                        return YES;
-                    }
-                }
-            }
-        }
-    }
-    
-    return NO;
 }
 
 @end
