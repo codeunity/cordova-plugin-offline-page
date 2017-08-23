@@ -45,6 +45,12 @@
 {
     [super pluginInitialize];
 
+    // observe notification if application is opening after it runs in background
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(onAppWillEnterForeground:)
+                                                 name:UIApplicationWillEnterForegroundNotification
+                                               object:nil];
+    
     // creates the UI to show offline mode
     [self createOfflineView];
 
@@ -80,8 +86,8 @@
 
     // set the webview delegate to notify navigation events
     notificationDelegate = [[CVDWebViewNotificationDelegate alloc] init];
-    notificationDelegate.wrappedDelegate = self.webView.delegate;
-    [self.webView setDelegate:notificationDelegate];
+	notificationDelegate.wrappedDelegate = ((UIWebView*)self.webView).delegate;
+    [(UIWebView*)self.webView setDelegate:notificationDelegate];
 }
 
 // enables offline page support
@@ -149,7 +155,7 @@
                 }
                 else {
                     if (self.failedURL) {
-                        [self.webView loadRequest: [NSURLRequest requestWithURL: self.failedURL]];
+                        [(UIWebView*)self.webView loadRequest: [NSURLRequest requestWithURL: self.failedURL]];
                     }
                     else {
                         [self.offlineView setHidden:YES];
@@ -202,6 +208,12 @@
             }
         }
     }
+}
+
+- (void)onAppWillEnterForeground:(NSNotification*)notification
+{
+    NSNotification* networkNotification = [[NSNotification alloc] initWithName:kReachabilityChangedNotification object:[CDVReachability reachabilityForInternetConnection] userInfo:nil];
+    [self updateConnectivityStatus:networkNotification];
 }
 
 @end
