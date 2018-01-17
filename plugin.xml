@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
     id="cordova-plugin-offline-page"
-    version="0.1.4">
+    version="0.1.5">
     <name>Offline Page</name>
     <description>An offline page for your cordova application.</description>
     <license>MIT License</license>

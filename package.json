@@ -1,0 +1,39 @@
+{
+  "name": "cordova-plugin-offline-page",
+  "version": "0.1.5",
+  "description": "An offline page for your cordova application.",
+  "cordova": {
+    "id": "cordova-plugin-offline-page",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeunity/cordova-plugin-offline-page.git"
+  },
+  "keywords": [
+    "cordova",
+    "offline",
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios"
+  ],
+  "engines": [
+    {
+      "name": "cordova-ios",
+      "version": ">=3.8.0"
+    },
+    {
+      "name": "cordova-android",
+      "version": ">=4.0.2"
+    }
+  ],
+  "author": "",
+  "license": "MIT License",
+  "bugs": {
+    "url": "https://github.com/codeunity/cordova-plugin-offline-page/issues"
+  },
+  "homepage": "https://github.com/codeunity/cordova-plugin-offline-page#readme"
+}
